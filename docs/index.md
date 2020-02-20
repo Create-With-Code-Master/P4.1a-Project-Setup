@@ -4,7 +4,7 @@ layout: tabbed-assignment
 
 # Overview
 
-<img class="overview-image" src="assets/images/prototype-4-banner.png">
+<img class="overview-image" src="assets/images/prototype-4/prototype-4-banner.png">
 
 In this lesson, you'll be setting up Protoype 4:
 * Creating a new Unity project.
