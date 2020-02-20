@@ -1,10 +1,10 @@
 # Configuration that is shared between all of the pages in this assignment.
 #
 # Git stuff
-git-curr-branch:
+git-curr-branch: master
 git-prev-branch: 
 # Link to an external lesson (e.g., a lesson on Code.org or TestOut).
-lesson:
+lesson: https://learn.unity.com/tutorial/lesson-4-1-watch-where-you-re-going?courseId=5cf96c41edbc2a2ca6e8810f&projectId=5cf96846edbc2a2bcde6d0fc
 # If not empty, display the text at the top of the page (or wherever the template does the include of outcome.html)
 # below the tabs
 outcome:
