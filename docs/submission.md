@@ -10,7 +10,7 @@ After completing the lesson:
    - Commited your changes to the **{{site.data.assignment.git-curr-branch}}** branch.
    - Pushed your work to GitHub.
    - Confirmed that you see your changes on GitHub.
-1. Then, copy the link to your repository on GitHub.
+1. Then, copy the link to your **{{starter-code-repo}}** repository on GitHub.
 1. Click the **Submit Assignment** button on Canvas.
 1. Paste the link into the **Website URL** text box.
 
