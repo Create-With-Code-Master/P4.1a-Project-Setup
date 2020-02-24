@@ -17,6 +17,7 @@ opts = {
 OptionParser.new do |o|
   o.banner = "Usage: #{$0} [options]"
 
+  o.on('-b BRANCH') { |v| opts[:branch] = v }
   o.on('-T TMPDIR') { |v| opts[:tmp_dir] = v }
   o.on('-v')        { |v| opts[:verbose] = true }
 end.parse!
