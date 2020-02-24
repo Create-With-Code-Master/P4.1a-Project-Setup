@@ -12,8 +12,8 @@ outcome:
 slides:
 # Name and URL of repository holding the starter code for this assignment.
 starter-code-org:
-starter-code-repo:
+starter-code-repo: Prototype-4
 starter-code-url:
 # Link to Google Doc template for assignment submission. Replace the end of the link "edit?..." with "copy"
 # to force creating a copy when the link is clicked.
-template: https://docs.google.com/document/d/1mXGfsftknyySHg8VIeOG81XexjH1LnGEvMO5HUapoQs/copy
+template: 
