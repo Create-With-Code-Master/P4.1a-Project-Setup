@@ -6,6 +6,7 @@ require 'optparse'
 
 opts = {
   base_url: 'https://github.com/',
+  branch: 'lesson-1',
   clone: 'git clone',
   gitignore_size: 500,
   scene: "Prototype 4.unity",
@@ -58,6 +59,19 @@ sample_scene = Pathname.new("#{local_repo}/Assets/Scenes/Sample Scene.unity")
 
 if (prototype_scene.file? && !sample_scene.file?)
   score += 1
+end
+
+# Check that the branch for this lesson exists.
+
+cmd = "cd #{local_repo}; git checkout #{opts[:branch]}"
+
+stdout = %x( #{cmd} )
+
+if ($?.exitstatus == 0)
+  # Success
+  score += 1
+else
+  puts stdout
 end
 
 puts score
