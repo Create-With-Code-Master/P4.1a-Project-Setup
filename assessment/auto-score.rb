@@ -8,6 +8,7 @@ opts = {
   base_url: 'https://github.com/',
   clone: 'git clone',
   gitignore_size: 500,
+  scene: "Prototype 4.unity",
   tmp_dir: 'tmp',
   verbose: false
 }
@@ -38,12 +39,24 @@ if ($?.exitstatus == 0)
   score += 1
 end
 
-# Confirm that .gitignore exists.
+# Confirm that .gitignore exists and the file count is reasonable.
 
 require 'pathname'
 
 gitignore = Pathname.new("#{local_repo}/.gitignore")
 if (gitignore.file? && gitignore.size > opts[:gitignore_size])
+  items = Dir["#{local_repo}/**/*"].length
+  if (items >= 20 && items <= 200)
+    score += 1
+  end
+end
+
+# Confirm that the prototype scene file exists & the sample has been removed
+
+prototype_scene = Pathname.new("#{local_repo}/Assets/Scenes/#{opts[:scene]}")
+sample_scene = Pathname.new("#{local_repo}/Assets/Scenes/Sample Scene.unity")
+
+if (prototype_scene.file? && !sample_scene.file?)
   score += 1
 end
 
