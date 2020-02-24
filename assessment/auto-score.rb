@@ -7,6 +7,7 @@ require 'optparse'
 opts = {
   base_url: 'https://github.com/',
   clone: 'git clone',
+  gitignore_size: 500,
   tmp_dir: 'tmp',
   verbose: false
 }
@@ -23,6 +24,7 @@ score = 0
 github_repo = ARGV.pop
 
 # Attempt to clone the repository.
+
 local_repo = github_repo.gsub(opts[:base_url], '')
 local_repo = "#{opts[:tmp_dir]}/#{local_repo}" if opts[:tmp_dir]
 repo_name = local_repo.gsub(/^.*\//, '')
@@ -33,6 +35,15 @@ stdout = %x( #{cmd} )
 
 if ($?.exitstatus == 0)
   # Success
+  score += 1
+end
+
+# Confirm that .gitignore exists.
+
+require 'pathname'
+
+gitignore = Pathname.new("#{local_repo}/.gitignore")
+if (gitignore.file? && gitignore.size > opts[:gitignore_size])
   score += 1
 end
 
