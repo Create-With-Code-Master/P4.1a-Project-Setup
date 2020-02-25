@@ -86,8 +86,8 @@ def check_repo_sanity(path, min, max)
   # - At least min files
   # - No more than max files
 
-  assets = Pathname.new("#{local_repo}/Assets")
-  if (assets.dir?)
+  assets = Pathname.new("#{path}/Assets")
+  if (assets.directory?)
     points = 1
   else
     points = 0
@@ -102,7 +102,7 @@ def check_repo_sanity(path, min, max)
           "either way."
   end
 
-  gitignore = Pathname.new("#{local_repo}/.gitignore")
+  gitignore = Pathname.new("#{path}/.gitignore")
   if (gitignore.file? && gitignore.size > @opts[:gitignore_size])
     # Do nothing, we're either already good or going to fail due to the
     # Assets folder being missing.
@@ -112,7 +112,7 @@ def check_repo_sanity(path, min, max)
           "Unity - please double check that you have a good .gitignore."
   end
 
-  items = Dir["#{local_repo}/**/*"].length
+  items = Dir["#{path}/**/*"].length
   if (items >= 20 && items <= 200)
     # Same logic here.
   elsif (items < 20)
@@ -133,6 +133,25 @@ def check_repo_sanity(path, min, max)
   return points, msg
 end
 
+def checkout_branch(path, branch)
+  cmd = "cd #{path}; git checkout #{branch}"
+
+  stdout = %x( #{cmd} )
+
+  if ($?.exitstatus == 0)
+    # Success
+    points = 1
+  else
+    msg = "You don't seem to have a branch for this lesson in your "           +
+          "repository. I was looking for a #{branch} branch. This may be "     +
+          "because you used a different branch name (or made a typo). Be "     +
+          "to create a branch for each lesson (in case you need to go back) "  +
+          "it is also worth developing a habit of consistancy (and tracking "  +
+          "directions)."
+  end
+  return points, msg
+end
+
 local_repo = repo_url.gsub(@opts[:base_url], '')
 local_repo = "#{@opts[:tmp_dir]}/#{local_repo}" if @opts[:tmp_dir]
 repo_name = local_repo.gsub(/^.*\//, '')
@@ -147,28 +166,49 @@ done(true) if (points == 0) # Clone failed, quit
 points, comment = check_repo_sanity(local_repo, 20, 200)
 @score += points
 @comments.push(comment)
-done(true) if (points == 0) # Clone failed, quit
+done(true) if (points == 0) # Something is seriously wrong, quit
+
+# Check for a lesson-1 branch.
+
+points, comment = checkout_branch(local_repo, @opts[:branch])
+@score += points
+@comments.push(comment)
+
+# Check that assets seem to have been imported. Should be on lesson branch
+# at this point.
+
+items = Dir["#{local_repo}/**/*"].length
+if (items > 50) # XXX: use real numbers, have alread checked for too many.
+  @score += 1
+else
+  # Will we still be on the master branch if the checkout failed?
+  msg = "Have you imported the project assets? The file count in your "        +
+        "repository (#{items}) seems too low."
+  @comments.push(msg)
+end
 
 # Confirm that the prototype scene file exists & the sample has been removed
 
-prototype_scene = Pathname.new("#{local_repo}/Assets/Scenes/#{@opts[:scene]}")
-sample_scene = Pathname.new("#{local_repo}/Assets/Scenes/Sample Scene.unity")
-
-if (prototype_scene.file? && !sample_scene.file?)
-  @score += 1
-end
-
-# Check that the branch for this lesson exists.
-
-cmd = "cd #{local_repo}; git checkout #{@opts[:branch]}"
-
+# Make sure we are back on the master branch.
+cmd = "cd #{local_repo}; git checkout master"
 stdout = %x( #{cmd} )
 
-if ($?.exitstatus == 0)
-  # Success
+prototype_scene = Pathname.new("#{local_repo}/Assets/Scenes/#{@opts[:scene]}")
+if (prototype_scene.file?)
   @score += 1
 else
-  puts stdout
+  msg = "The Prototype 4 scene file is missing from the Scenes folder on the " +
+        "master branch. Did you forget to merge your lesson-1 branch into "    +
+        "the master branch after importing your assets? Having a solid "       +
+        "Having a solid starting point that you can go back to is a big help " +
+        "if you make a mistake and need (or want) to back out of it."
+  @comments.push(msg)
+end
+
+sample_scene = Pathname.new("#{local_repo}/Assets/Scenes/Sample Scene.unity")
+if (sample_scene.file?)
+  msg = "Don't forget to remove the Sample Scene."
+  @comments.push(msg)
 end
 
 done(@resubmit)
