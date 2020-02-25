@@ -46,7 +46,7 @@ def done(resubmit)
   puts @score
   if ( @comments.length > 1 || @comments[0].length > 0 )
     @comments.each do |c|
-      puts "#{c}\n\n" if c.length > 0
+      puts "#{c}\n\n" if (c != nil && c.length > 0)
     end
   end
   exit
