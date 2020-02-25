@@ -32,7 +32,12 @@ repo_url = ARGV.pop
 
 def done(resubmit)
   @comments.push('After correcting any problems you may resubmit up until the assignment closes.') if (resubmit)
-  puts "#{@score}\n#{@comments}"
+  puts @score
+  if ( @comments[0].length > 0 )
+    @comments.each do |c|
+      puts "#{c}\n\n"
+    end
+  end
   exit
 end
 
@@ -116,4 +121,4 @@ else
   puts stdout
 end
 
-done
+done(@resubmit)
