@@ -11,7 +11,10 @@ require 'pathname'
   base_url: 'https://github.com/',
   branch: 'lesson-1',
   clone: 'git clone',
+  debug: false,
   gitignore_size: 500,
+  max_points: 5,
+  resubmit_threshold: 0.6,
   scene: "Prototype 4.unity",
   tmp_dir: 'tmp',
   verbose: false
@@ -21,6 +24,7 @@ OptionParser.new do |o|
   o.banner = "Usage: #{$0} [options]"
 
   o.on('-b BRANCH') { |v| @opts[:branch] = v }
+  o.on('-d')        { |v| @opts[:debug] = true }
   o.on('-T TMPDIR') { |v| @opts[:tmp_dir] = v }
   o.on('-v')        { |v| @opts[:verbose] = true }
 end.parse!
@@ -32,17 +36,23 @@ repo_url = ARGV.pop
 @resubmit = false
 
 def done(resubmit)
-  @comments.push('After correcting any problems you may resubmit up until the assignment closes.') if (resubmit)
+  if (@opts[:debug])
+    puts "done(): resubmit = #{resubmit}; @score = #{@score};\n"               +
+         "@comments = \'#{@comments}\'"
+  end
+
+  msg = 'After correcting any problems you may resubmit up until the assignment closes.'
+  @comments.push(msg) if (resubmit || @score <= (@opts[:max_points] * @opts[:resubmit_threshold]))
   puts @score
-  if ( @comments[0].length > 0 )
+  if ( @comments.length > 1 || @comments[0].length > 0 )
     @comments.each do |c|
-      puts "#{c}\n\n"
+      puts "#{c}\n\n" if c.length > 0
     end
   end
   exit
 end
 
-def clone(url, path)
+def clone_and_score(url, path)
 
   # Attempt to clone the repository.
   #
@@ -89,6 +99,7 @@ def check_repo_sanity(path, min, max)
   assets = Pathname.new("#{path}/Assets")
   if (assets.directory?)
     points = 1
+    msg = ""
   else
     points = 0
     msg = "Your Assets folder appears to be missing. Did you create your Git " +
@@ -133,30 +144,51 @@ def check_repo_sanity(path, min, max)
   return points, msg
 end
 
-def checkout_branch(path, branch)
-  cmd = "cd #{path}; git checkout #{branch}"
-
-  stdout = %x( #{cmd} )
-
-  if ($?.exitstatus == 0)
+def checkout_branch_and_score(path, branch)
+  if (checkout_branch(path, branch) == 0)
     # Success
     points = 1
   else
+    points = 0
     msg = "You don't seem to have a branch for this lesson in your "           +
-          "repository. I was looking for a #{branch} branch. This may be "     +
-          "because you used a different branch name (or made a typo). Be "     +
-          "to create a branch for each lesson (in case you need to go back) "  +
-          "it is also worth developing a habit of consistancy (and tracking "  +
-          "directions)."
+          "repository. I was looking for a \'#{branch}\' branch. This may be " +
+          "because you used a different branch name (or made a typo).\n\nBe "  +
+          "sure to create a branch for each lesson (in case you need to go "   +
+          "back) it is also worth developing a habit of consistancy (and "     +
+          "tracking directions)."
+  end
+  if (@opts[:debug])
+    puts "checkout_branch_and_score(): #{points.to_s}: #{msg}"
   end
   return points, msg
+end
+
+# TODO: clone() and clone_and_score()
+
+def checkout_branch(path, branch)
+  # TODO: do a better job with messages from Git.
+
+  cmd = "cd #{path}; git checkout #{branch}"
+
+  fd0, fd1, fd2, wait = popen3(cmd)
+  fd0.close
+
+  stdout = fd1.read ; fd1.close
+  stderr = fd2.read ; fd2.close
+
+  if (@opts[:verbose])
+    puts stdout
+    puts stderr
+  end
+
+  return wait.value
 end
 
 local_repo = repo_url.gsub(@opts[:base_url], '')
 local_repo = "#{@opts[:tmp_dir]}/#{local_repo}" if @opts[:tmp_dir]
 repo_name = local_repo.gsub(/^.*\//, '')
 
-points, comment = clone(repo_url, local_repo)
+points, comment = clone_and_score(repo_url, local_repo)
 @score += points
 @comments.push(comment)
 done(true) if (points == 0) # Clone failed, quit
@@ -170,7 +202,7 @@ done(true) if (points == 0) # Something is seriously wrong, quit
 
 # Check for a lesson-1 branch.
 
-points, comment = checkout_branch(local_repo, @opts[:branch])
+points, comment = checkout_branch_and_score(local_repo, @opts[:branch])
 @score += points
 @comments.push(comment)
 
@@ -190,8 +222,7 @@ end
 # Confirm that the prototype scene file exists & the sample has been removed
 
 # Make sure we are back on the master branch.
-cmd = "cd #{local_repo}; git checkout master"
-stdout = %x( #{cmd} )
+checkout_branch(local_repo, 'master')
 
 prototype_scene = Pathname.new("#{local_repo}/Assets/Scenes/#{@opts[:scene]}")
 if (prototype_scene.file?)
