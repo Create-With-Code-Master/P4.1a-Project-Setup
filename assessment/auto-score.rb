@@ -3,6 +3,8 @@
 # Automated checks
 
 require 'optparse'
+require 'open3'         # Used by clone().
+include Open3
 
 @opts = {
   base_url: 'https://github.com/',
@@ -29,7 +31,7 @@ repo_url = ARGV.pop
 @resubmit = false
 
 def done(resubmit)
-  @comments.push('After correcting the problems above you can resubmit up until the assignment closes.') if (resubmit)
+  @comments.push('After correcting any problems you may resubmit up until the assignment closes.') if (resubmit)
   puts "#{@score}\n#{@comments}"
   exit
 end
@@ -45,9 +47,14 @@ def clone(url, path)
 
   cmd = "#{@opts[:clone]} #{url} #{path}"
 
-  stdout = %x( #{cmd} )
+  #stdout = %x( #{cmd} )
+  fd0, fd1, fd2, wait = popen3(cmd)
+  fd0.close
 
-  if ($?.exitstatus == 0)
+  stdout = fd1.read ; fd1.close
+  stderr = fd2.read ; fd2.close
+
+  if (wait.value == 0)
     # Success
     points = 1
     msg = ''
@@ -57,7 +64,7 @@ def clone(url, path)
     msg = "Unable to clone \'#{url}\'. "
     if (url.match(/\/[Pp]rototype-*[1-5]$/))
       # URL seems plausible
-      msg += "Is the repository private?"
+      msg += "Please check the URL and make sure the repository isn't private."
     else
       # ...or not.
       msg += "Please check the URL."
@@ -89,7 +96,7 @@ end
 
 # Confirm that the prototype scene file exists & the sample has been removed
 
-prototype_scene = Pathname.new("#{local_repo}/Assets/Scenes/#{opts[:scene]}")
+prototype_scene = Pathname.new("#{local_repo}/Assets/Scenes/#{@opts[:scene]}")
 sample_scene = Pathname.new("#{local_repo}/Assets/Scenes/Sample Scene.unity")
 
 if (prototype_scene.file? && !sample_scene.file?)
