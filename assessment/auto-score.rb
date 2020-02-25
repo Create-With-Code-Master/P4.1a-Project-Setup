@@ -5,6 +5,7 @@
 require 'optparse'
 require 'open3'         # Used by clone().
 include Open3
+require 'pathname'
 
 @opts = {
   base_url: 'https://github.com/',
@@ -78,6 +79,60 @@ def clone(url, path)
   return points, msg
 end
 
+def check_repo_sanity(path, min, max)
+  # Check that the repository looks sane. We expect:
+  # - An Assets folder
+  # - A .gitignore File
+  # - At least min files
+  # - No more than max files
+
+  assets = Pathname.new("#{local_repo}/Assets")
+  if (assets.dir?)
+    points = 1
+  else
+    points = 0
+    msg = "Your Assets folder appears to be missing. Did you create your Git " +
+          "repository inside of your Unity project (do you see a Prototype-4 " +
+          "folder inside of your Unity project)? If that is so, Git won't "    +
+          "see your changes (there will be nothing to commit & push). If "     +
+          "you've just started, the easiest thing to do is probably to "       +
+          "delete the repository locally and on GitHub and start over. It is " +
+          "also possible to move the Git repository 'up a level' to fix the "  +
+          "problem. As long as you fix it promptly it's not a big deal "       +
+          "either way."
+  end
+
+  gitignore = Pathname.new("#{local_repo}/.gitignore")
+  if (gitignore.file? && gitignore.size > @opts[:gitignore_size])
+    # Do nothing, we're either already good or going to fail due to the
+    # Assets folder being missing.
+  else
+    points = 0
+    msg = "Your .gitignore is either missing or smaller than expected for "    +
+          "Unity - please double check that you have a good .gitignore."
+  end
+
+  items = Dir["#{local_repo}/**/*"].length
+  if (items >= 20 && items <= 200)
+    # Same logic here.
+  elsif (items < 20)
+    points = 0
+    msg = "There don't seem to be enough files is your project - it's likely " +
+          "that your Unity project and the Git repository aren't in the same " +
+          "the same folder - please ask for help if you don't know how to fix" +
+          "this problem."
+  else # > 200
+    points = 0
+    msg = "There are way too many files in your Git repository. This usually " +
+          "happens when either the .gitignore file is missing or the first "   +
+          "commit was done before adding it. You may also be having trouble "  +
+          "pushing to GitHub. If you have a good .gitignore this will be "     +
+          "messy to fix - it's probably easiest to start over."
+  end
+
+  return points, msg
+end
+
 local_repo = repo_url.gsub(@opts[:base_url], '')
 local_repo = "#{@opts[:tmp_dir]}/#{local_repo}" if @opts[:tmp_dir]
 repo_name = local_repo.gsub(/^.*\//, '')
@@ -87,17 +142,12 @@ points, comment = clone(repo_url, local_repo)
 @comments.push(comment)
 done(true) if (points == 0) # Clone failed, quit
 
-# Confirm that .gitignore exists and the file count is reasonable.
+# Confirm that the repo looks sane.
 
-require 'pathname'
-
-gitignore = Pathname.new("#{local_repo}/.gitignore")
-if (gitignore.file? && gitignore.size > @opts[:gitignore_size])
-  items = Dir["#{local_repo}/**/*"].length
-  if (items >= 20 && items <= 200)
-    @score += 1
-  end
-end
+points, comment = check_repo_sanity(local_repo, 20, 200)
+@score += points
+@comments.push(comment)
+done(true) if (points == 0) # Clone failed, quit
 
 # Confirm that the prototype scene file exists & the sample has been removed
 
